@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UMA Link Viewer</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>UMA Link Viewer</h1>
+        <p class="subtitle">Paste a Polymarket slug or event URL to pull every UMA proposal.</p>
+      </header>
+      <section class="card">
+        <label class="field">
+          <span>Polymarket slug / URL / event ID</span>
+          <input id="input-value" type="text" placeholder="e.g. lol-jdg-tes-2026-02-24" autocomplete="off" />
+        </label>
+        <div class="options">
+          <label class="number-field">
+            <span>Batch size</span>
+            <input id="batch-size" type="number" min="1" step="1" value="8" />
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="include-closed" />
+            <span>Include closed markets</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="include-proposed" />
+            <span>Include proposed markets</span>
+          </label>
+        </div>
+        <button id="fetch-btn">Fetch UMA Links</button>
+        <p class="status" id="status-text">Enter a slug to begin.</p>
+      </section>
+      <section class="results" id="results"></section>
+    </main>
+    <script src="main.js"></script>
+  </body>
+</html>

@@ -11,6 +11,7 @@ const inputEl = document.querySelector("#input-value");
 const includeClosedEl = document.querySelector("#include-closed");
 const includeProposedEl = document.querySelector("#include-proposed");
 const batchSizeEl = document.querySelector("#batch-size");
+const themeToggleEl = document.querySelector("#theme-toggle");
 const fetchBtn = document.querySelector("#fetch-btn");
 const statusEl = document.querySelector("#status-text");
 const resultsEl = document.querySelector("#results");
@@ -19,6 +20,9 @@ const textEncoder = new TextEncoder();
 const PROXY_BUILDERS = [
   (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
 ];
+const THEME_STORAGE_KEY = "uma-link-viewer-theme";
+const THEMES = { LIGHT: "light", DARK: "dark" };
+let currentTheme = THEMES.LIGHT;
 
 async function requestWithFallback(url, options = {}, enableProxy = true) {
   const attempts = [url];
@@ -40,6 +44,53 @@ async function requestWithFallback(url, options = {}, enableProxy = true) {
     }
   }
   throw lastError || new Error("All request attempts failed.");
+}
+
+function applyTheme(theme) {
+  currentTheme = theme;
+  document.documentElement.setAttribute("data-theme", theme);
+  updateThemeToggle(theme);
+}
+
+function updateThemeToggle(theme) {
+  if (!themeToggleEl) {
+    return;
+  }
+  const nextTheme = theme === THEMES.DARK ? THEMES.LIGHT : THEMES.DARK;
+  const icon = nextTheme === THEMES.DARK ? "🌙" : "☀️";
+  const label = nextTheme === THEMES.DARK ? "Switch to dark mode" : "Switch to light mode";
+  themeToggleEl.textContent = icon;
+  themeToggleEl.setAttribute("aria-label", label);
+  themeToggleEl.setAttribute("title", label);
+}
+
+function resolveInitialTheme() {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored && (stored === THEMES.LIGHT || stored === THEMES.DARK)) {
+      return stored;
+    }
+  } catch (error) {
+    // ignore storage errors and fall back to system preference
+  }
+  const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return prefersDark ? THEMES.DARK : THEMES.LIGHT;
+}
+
+function initTheme() {
+  const initialTheme = resolveInitialTheme();
+  applyTheme(initialTheme);
+  if (themeToggleEl) {
+    themeToggleEl.addEventListener("click", () => {
+      const nextTheme = currentTheme === THEMES.DARK ? THEMES.LIGHT : THEMES.DARK;
+      applyTheme(nextTheme);
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+      } catch (error) {
+        // storage might be unavailable; ignore
+      }
+    });
+  }
 }
 
 function setStatus(message, isError = false) {
@@ -367,4 +418,5 @@ inputEl.addEventListener("keydown", (event) => {
   }
 });
 
+initTheme();
 setStatus("Enter a slug to begin.");

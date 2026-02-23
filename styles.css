@@ -1,8 +1,45 @@
 :root {
   font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  color: #0f172a;
-  background-color: #f4f6fb;
   line-height: 1.5;
+  color-scheme: light;
+  --page-bg: #f4f6fb;
+  --card-bg: #ffffff;
+  --text-primary: #0f172a;
+  --text-muted: #475569;
+  --border-color: #e2e8f0;
+  --input-border: #cbd5f5;
+  --input-bg: #ffffff;
+  --status-color: #475569;
+  --entry-bg: #ffffff;
+  --entry-border: #cbd5f5;
+  --entry-positive-bg: #ecfdf5;
+  --entry-positive-border: #22c55e;
+  --entry-warning-bg: #fff7ed;
+  --entry-warning-border: #f97316;
+  --link-color: #2563eb;
+  --shadow-strong: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-soft: 0 6px 18px rgba(15, 23, 42, 0.05);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: #050914;
+  --card-bg: #0f172a;
+  --text-primary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border-color: #1f2937;
+  --input-border: #1f2937;
+  --input-bg: #0b1220;
+  --status-color: #94a3b8;
+  --entry-bg: #0b1220;
+  --entry-border: #1f2937;
+  --entry-positive-bg: #064e3b;
+  --entry-positive-border: #22c55e;
+  --entry-warning-bg: #7c2d12;
+  --entry-warning-border: #f97316;
+  --link-color: #93c5fd;
+  --shadow-strong: 0 12px 30px rgba(0, 0, 0, 0.4);
+  --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -16,6 +53,8 @@ body {
   justify-content: center;
   align-items: flex-start;
   padding: 24px;
+  background-color: var(--page-bg);
+  color: var(--text-primary);
 }
 
 .app {
@@ -25,6 +64,19 @@ body {
   gap: 16px;
 }
 
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.header-text {
+  flex: 1 1 auto;
+  min-width: 220px;
+}
+
 header h1 {
   margin: 0;
   font-size: 1.8rem;
@@ -32,14 +84,14 @@ header h1 {
 
 .subtitle {
   margin: 4px 0 0;
-  color: #475569;
+  color: var(--text-muted);
 }
 
 .card {
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--shadow-strong);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -53,10 +105,12 @@ header h1 {
 }
 
 .field input {
-  border: 1px solid #cbd5f5;
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 1rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .options {
@@ -74,12 +128,13 @@ header h1 {
   font-weight: 600;
 }
 
-.options select,
 .options input[type="number"] {
   border-radius: 8px;
-  border: 1px solid #cbd5f5;
+  border: 1px solid var(--input-border);
   padding: 8px;
   font-size: 0.95rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .checkbox {
@@ -110,9 +165,24 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.ghost-btn {
+  border-radius: 999px;
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.ghost-btn:hover {
+  background: rgba(148, 163, 184, 0.2);
+}
+
 .status {
   margin: 0;
-  color: #475569;
+  color: var(--status-color);
   font-size: 0.95rem;
 }
 
@@ -123,10 +193,10 @@ button:disabled {
 }
 
 .result-card {
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 18px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+  box-shadow: var(--shadow-soft);
 }
 
 .result-card h2 {
@@ -141,7 +211,7 @@ button:disabled {
 }
 
 .market-row {
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 12px;
 }
@@ -156,31 +226,31 @@ button:disabled {
 
 .market-meta {
   font-size: 0.85rem;
-  color: #475569;
+  color: var(--text-muted);
 }
 
 .uma-entry {
-  border-left: 3px solid #cbd5f5;
+  border-left: 3px solid var(--entry-border);
   padding: 8px 10px;
   margin-top: 8px;
   font-size: 0.9rem;
-  color: #1e293b;
+  color: var(--text-primary);
   border-radius: 6px;
-  background: #fff;
+  background: var(--entry-bg);
 }
 
 .uma-entry.state-positive {
-  background: #ecfdf5;
-  border-left-color: #22c55e;
+  background: var(--entry-positive-bg);
+  border-left-color: var(--entry-positive-border);
 }
 
 .uma-entry.state-warning {
-  background: #fff7ed;
-  border-left-color: #f97316;
+  background: var(--entry-warning-bg);
+  border-left-color: var(--entry-warning-border);
 }
 
 .uma-entry a {
-  color: #2563eb;
+  color: var(--link-color);
   text-decoration: none;
   font-weight: 600;
 }

@@ -16,6 +16,31 @@ const statusEl = document.querySelector("#status-text");
 const resultsEl = document.querySelector("#results");
 
 const textEncoder = new TextEncoder();
+const PROXY_BUILDERS = [
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
+
+async function requestWithFallback(url, options = {}, enableProxy = true) {
+  const attempts = [url];
+  if (enableProxy) {
+    PROXY_BUILDERS.forEach((builder) => attempts.push(builder(url)));
+  }
+  let lastError;
+  for (const target of attempts) {
+    try {
+      const response = await fetch(target, options);
+      if (!response.ok) {
+        const message = await response.text();
+        lastError = new Error(`Request failed (${response.status}): ${message}`);
+        continue;
+      }
+      return response;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("All request attempts failed.");
+}
 
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
@@ -64,10 +89,7 @@ async function fetchEventDetails(target) {
   }
   for (const endpoint of attempts) {
     try {
-      const response = await fetch(endpoint);
-      if (!response.ok) {
-        throw new Error(`Polymarket request failed (${response.status}).`);
-      }
+      const response = await requestWithFallback(endpoint);
       const payload = await response.json();
       if (!payload || typeof payload !== "object") {
         continue;
@@ -168,15 +190,11 @@ async function fetchUmaMap(marketIds, chainKey, batchSize = DEFAULT_BATCH_SIZE, 
   const results = {};
   for (const batch of chunkIds(marketIds, batchSize)) {
     const payload = buildGraphqlPayload(batch);
-    const response = await fetch(endpoint, {
+    const response = await requestWithFallback(endpoint, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     });
-    if (!response.ok) {
-      const message = await response.text();
-      throw new Error(`UMA request failed (${response.status}): ${message}`);
-    }
     const data = await response.json();
     if (data.errors) {
       throw new Error(`UMA GraphQL error: ${JSON.stringify(data.errors)}`);

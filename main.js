@@ -5,7 +5,7 @@ const CHAIN_ENDPOINTS = {
 };
 const DEFAULT_CHAIN = "polygon";
 const PER_MARKET_LIMIT = 5;
-const DEFAULT_BATCH_SIZE = 8;
+const DEFAULT_BATCH_SIZE = 4;
 
 const inputEl = document.querySelector("#input-value");
 const includeClosedEl = document.querySelector("#include-closed");
@@ -501,3 +501,4 @@ inputEl.addEventListener("keydown", (event) => {
 
 initTheme();
 setStatus("Enter a slug to begin.");
+

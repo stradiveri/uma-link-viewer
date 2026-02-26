@@ -348,7 +348,7 @@ function buildPortalUrl(entry) {
     return null;
   }
   const state = (entry?.state || "").toLowerCase();
-  if (state === "requested") {
+  if (state === "requested" || state === "invalid") {
     return `https://oracle.uma.xyz/propose?project=Polymarket&transactionHash=${txHash}&eventIndex=${logIndex}&chainId=137`;
   }
   return `https://oracle.uma.xyz/?transactionHash=${txHash}&eventIndex=${logIndex}`;
@@ -368,6 +368,9 @@ function getUmaStateClass(state) {
   }
   if (normalized === "closed"  || normalized === "settled") {
     return "state-warning";
+  }
+  if (normalized === "requested" || normalized === "invalid") {
+    return "state-info";
   }
   return "";
 }

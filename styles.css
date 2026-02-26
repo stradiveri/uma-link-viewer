@@ -16,6 +16,8 @@
   --entry-positive-border: #22c55e;
   --entry-warning-bg: #fff7ed;
   --entry-warning-border: #f97316;
+  --entry-info-bg: #e0f2fe;
+  --entry-info-border: #38bdf8;
   --link-color: #2563eb;
   --shadow-strong: 0 8px 24px rgba(15, 23, 42, 0.08);
   --shadow-soft: 0 6px 18px rgba(15, 23, 42, 0.05);
@@ -37,6 +39,8 @@
   --entry-positive-border: #22c55e;
   --entry-warning-bg: #7c2d12;
   --entry-warning-border: #f97316;
+  --entry-info-bg: #0c4a6e;
+  --entry-info-border: #38bdf8;
   --link-color: #93c5fd;
   --shadow-strong: 0 12px 30px rgba(0, 0, 0, 0.4);
   --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.35);
@@ -247,6 +251,11 @@ button:disabled {
 .uma-entry.state-warning {
   background: var(--entry-warning-bg);
   border-left-color: var(--entry-warning-border);
+}
+
+.uma-entry.state-info {
+  background: var(--entry-info-bg);
+  border-left-color: var(--entry-info-border);
 }
 
 .uma-entry a {

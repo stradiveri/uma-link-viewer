@@ -1,6 +1,6 @@
 const POLY_BASE = "https://gamma-api.polymarket.com/events";
 const CHAIN_ENDPOINTS = {
-  polygon: "https://api.goldsky.com/api/public/project_clus2fndawbcc01w31192938i/subgraphs/polygon-managed-optimistic-oracle-v2/1.0.4/gn",
+  polygon: "https://api.studio.thegraph.com/query/1057/polygon-managed-optimistic-oracle-v2/1.2.0",
   amoy: "https://api.goldsky.com/api/public/project_clus2fndawbcc01w31192938i/subgraphs/amoy-managed-optimistic-oracle-v2/1.1.0/gn",
 };
 const DEFAULT_CHAIN = "polygon";
@@ -159,6 +159,72 @@ async function fetchEventDetails(target) {
   throw new Error("Polymarket event not found. Double-check the slug or event ID.");
 }
 
+async function fetchEventById(eventId) {
+  if (eventId === null || eventId === undefined) {
+    return null;
+  }
+  try {
+    const response = await requestWithFallback(`${POLY_BASE}/${encodeURIComponent(eventId)}`);
+    const payload = await response.json();
+    if (payload && !payload.error) {
+      return payload;
+    }
+  } catch (error) {
+    console.warn("Failed to fetch event by id", error);
+  }
+  return null;
+}
+
+async function fetchChildEvents(parentEventId, limit = 50) {
+  if (parentEventId === null || parentEventId === undefined) {
+    return [];
+  }
+  const url = `${POLY_BASE}?parent_event_id=${encodeURIComponent(parentEventId)}&limit=${limit}`;
+  try {
+    const response = await requestWithFallback(url);
+    const payload = await response.json();
+    if (Array.isArray(payload)) {
+      return payload.filter((child) => child && typeof child === "object");
+    }
+  } catch (error) {
+    console.warn("Failed to fetch child events", error);
+  }
+  return [];
+}
+
+async function gatherRelatedEvents(primaryEvent) {
+  if (!primaryEvent) {
+    return [];
+  }
+  const seen = new Map();
+  const addEvent = (event) => {
+    if (!event || event.id === undefined || event.id === null) {
+      return;
+    }
+    const key = String(event.id);
+    if (!seen.has(key)) {
+      seen.set(key, event);
+    }
+  };
+
+  addEvent(primaryEvent);
+  const rootId = primaryEvent.parentEventId ?? primaryEvent.id ?? null;
+
+  if (primaryEvent.parentEventId) {
+    const parentEvent = await fetchEventById(primaryEvent.parentEventId);
+    if (parentEvent) {
+      addEvent(parentEvent);
+    }
+  }
+
+  if (rootId !== null && rootId !== undefined) {
+    const childEvents = await fetchChildEvents(rootId);
+    childEvents.forEach(addEvent);
+  }
+
+  return Array.from(seen.values());
+}
+
 function isProposedMarket(market) {
   return market?.umaResolutionStatus === "proposed";
 }
@@ -297,10 +363,10 @@ function createPlaceholderEntry(text) {
 
 function getUmaStateClass(state) {
   const normalized = (state || "").toLowerCase();
-  if (normalized === "proposed" || normalized === "settled") {
+  if (normalized === "proposed") {
     return "state-positive";
   }
-  if (normalized === "closed") {
+  if (normalized === "closed"  || normalized === "settled") {
     return "state-warning";
   }
   return "";
@@ -319,39 +385,45 @@ function createUmaEntryElement(entry) {
   return wrapper;
 }
 
-function renderEventShell(event, marketRows) {
+function renderEventSections(eventCollections) {
   resultsEl.innerHTML = "";
-  if (!marketRows.length) {
-    resultsEl.innerHTML = "<p>No markets match the selected filters.</p>";
-    return new Map();
-  }
-  const eventCard = document.createElement("article");
-  eventCard.className = "result-card";
-  const title = event?.title || event?.name || "Polymarket event";
-  const subtitle = event?.slug || event?.id;
-  eventCard.innerHTML = `
-    <h2>${title}</h2>
-    <p class="market-meta">${subtitle ? `Slug/ID: ${subtitle}` : ""}</p>
-  `;
-  const list = document.createElement("div");
-  list.className = "market-list";
   const rowMap = new Map();
-  marketRows.forEach((market) => {
-    const row = document.createElement("div");
-    row.className = "market-row";
-    row.innerHTML = `
-      <div class="market-header">
-        <span>${market.label}</span>
-        <span class="market-meta">${market.stateLabel}</span>
-      </div>
-      <div class="market-meta">Market ID: ${market.id}</div>
+  if (!eventCollections.length) {
+    resultsEl.innerHTML = "<p>No markets match the selected filters.</p>";
+    return rowMap;
+  }
+
+  eventCollections.forEach(({ event, markets }) => {
+    const eventCard = document.createElement("article");
+    eventCard.className = "result-card";
+    const title = event?.title || event?.name || "Polymarket event";
+    const subtitle = event?.slug || event?.id;
+    eventCard.innerHTML = `
+      <h2>${title}</h2>
+      <p class="market-meta">${subtitle ? `Slug/ID: ${subtitle}` : ""}</p>
     `;
-    row.appendChild(createPlaceholderEntry("Loading UMA requests…"));
-    list.appendChild(row);
-    rowMap.set(market.id, row);
+
+    const list = document.createElement("div");
+    list.className = "market-list";
+    markets.forEach((market) => {
+      const row = document.createElement("div");
+      row.className = "market-row";
+      row.innerHTML = `
+        <div class="market-header">
+          <span>${market.label}</span>
+          <span class="market-meta">${market.stateLabel}</span>
+        </div>
+        <div class="market-meta">Market ID: ${market.id}</div>
+      `;
+      row.appendChild(createPlaceholderEntry("Loading UMA requests…"));
+      list.appendChild(row);
+      rowMap.set(market.id, row);
+    });
+
+    eventCard.appendChild(list);
+    resultsEl.appendChild(eventCard);
   });
-  eventCard.appendChild(list);
-  resultsEl.appendChild(eventCard);
+
   return rowMap;
 }
 
@@ -380,28 +452,34 @@ async function handleFetch() {
   setStatus("Loading Polymarket event…");
   try {
     const event = await fetchEventDetails(target);
+    const relatedEvents = await gatherRelatedEvents(event);
     const includeClosed = includeClosedEl.checked;
     const includeProposed = includeProposedEl.checked;
     const batchSizeValue = parseInt(batchSizeEl.value, 10);
     const effectiveBatchSize = Number.isFinite(batchSizeValue) && batchSizeValue > 0 ? batchSizeValue : DEFAULT_BATCH_SIZE;
-    const markets = collectMarkets(event, includeClosed, includeProposed);
-    if (!markets.length) {
+    const eventCollections = relatedEvents
+      .map((evt) => ({ event: evt, markets: collectMarkets(evt, includeClosed, includeProposed) }))
+      .filter((collection) => collection.markets.length);
+
+    if (!eventCollections.length) {
       resultsEl.innerHTML = "<p>No markets match the selected filters.</p>";
       setStatus("No markets match the selected filters.");
       return;
     }
-    const rowMap = renderEventShell(event, markets);
+    const rowMap = renderEventSections(eventCollections);
     setStatus("Fetching UMA proposals…");
-    const marketIds = markets.map((market) => market.id);
+    const marketIds = Array.from(
+      new Set(eventCollections.flatMap(({ markets }) => markets.map((market) => market.id))),
+    );
     let resolved = 0;
     await fetchUmaMap(marketIds, DEFAULT_CHAIN, effectiveBatchSize, (chunk) => {
       Object.entries(chunk).forEach(([marketId, proposals]) => {
         updateMarketRow(rowMap.get(marketId), proposals);
       });
       resolved += Object.keys(chunk).length;
-      setStatus(`Fetched UMA for ${resolved}/${markets.length} market(s)…`);
+      setStatus(`Fetched UMA for ${resolved}/${marketIds.length} market(s)…`);
     });
-    setStatus(`Found ${markets.length} market(s).`);
+    setStatus(`Found ${marketIds.length} market(s) across ${eventCollections.length} event(s).`);
   } catch (error) {
     console.error(error);
     setStatus(error.message || "Unexpected error", true);

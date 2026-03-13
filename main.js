@@ -17,9 +17,39 @@ const statusEl = document.querySelector("#status-text");
 const resultsEl = document.querySelector("#results");
 
 const textEncoder = new TextEncoder();
-const PROXY_BUILDERS = [
-  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-];
+const PROXY_PARAM = "proxy";
+const DEFAULT_PROXY = "https://corsproxy.io/?";
+const LOCALHOST_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+function buildProxyBuilder(rawBase) {
+  if (!rawBase) {
+    return null;
+  }
+  const base = rawBase.trim();
+  if (!base) {
+    return null;
+  }
+  if (base.includes("{url}")) {
+    return (url) => base.replace("{url}", encodeURIComponent(url));
+  }
+  const separator = base.includes("?") ? "" : "?";
+  return (url) => `${base}${separator}${encodeURIComponent(url)}`;
+}
+
+function resolveProxyBuilders() {
+  const params = new URLSearchParams(window.location.search);
+  const customProxy = params.get(PROXY_PARAM);
+  if (customProxy) {
+    const builder = buildProxyBuilder(customProxy);
+    return builder ? [builder] : [];
+  }
+  if (!LOCALHOST_HOSTS.has(window.location.hostname)) {
+    return [];
+  }
+  return [(url) => `${DEFAULT_PROXY}${encodeURIComponent(url)}`];
+}
+
+const PROXY_BUILDERS = resolveProxyBuilders();
 const THEME_STORAGE_KEY = "uma-link-viewer-theme";
 const THEMES = { LIGHT: "light", DARK: "dark" };
 let currentTheme = THEMES.LIGHT;
@@ -485,7 +515,15 @@ async function handleFetch() {
     setStatus(`Found ${marketIds.length} market(s) across ${eventCollections.length} event(s).`);
   } catch (error) {
     console.error(error);
-    setStatus(error.message || "Unexpected error", true);
+    const message = error?.message || "Unexpected error";
+    if (!PROXY_BUILDERS.length && error?.name === "TypeError") {
+      setStatus(
+        "Blocked by CORS in the browser. Add a proxy with ?proxy=YOUR_PROXY_URL or run locally.",
+        true,
+      );
+      return;
+    }
+    setStatus(message, true);
   } finally {
     fetchBtn.disabled = false;
   }

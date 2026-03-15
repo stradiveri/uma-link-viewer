@@ -17,7 +17,7 @@ const statusEl = document.querySelector("#status-text");
 const resultsEl = document.querySelector("#results");
 
 const textEncoder = new TextEncoder();
-const PROD_PROXY_BASE = "";
+const PROD_PROXY_BASE = "https://uma-link-viewer.vercel.app/api/proxy?url=";
 const PROD_HOSTS = new Set(["stradiveri.github.io"]);
 
 function buildProxyBuilder(rawBase) {

@@ -17,9 +17,8 @@ const statusEl = document.querySelector("#status-text");
 const resultsEl = document.querySelector("#results");
 
 const textEncoder = new TextEncoder();
-const PROXY_PARAM = "proxy";
-const DEFAULT_PROXY = "https://corsproxy.io/?";
-const LOCALHOST_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const PROD_PROXY_BASE = "";
+const PROD_HOSTS = new Set(["stradiveri.github.io"]);
 
 function buildProxyBuilder(rawBase) {
   if (!rawBase) {
@@ -37,16 +36,11 @@ function buildProxyBuilder(rawBase) {
 }
 
 function resolveProxyBuilders() {
-  const params = new URLSearchParams(window.location.search);
-  const customProxy = params.get(PROXY_PARAM);
-  if (customProxy) {
-    const builder = buildProxyBuilder(customProxy);
+  if (PROD_PROXY_BASE && PROD_HOSTS.has(window.location.hostname)) {
+    const builder = buildProxyBuilder(PROD_PROXY_BASE);
     return builder ? [builder] : [];
   }
-  if (!LOCALHOST_HOSTS.has(window.location.hostname)) {
-    return [];
-  }
-  return [(url) => `${DEFAULT_PROXY}${encodeURIComponent(url)}`];
+  return [];
 }
 
 const PROXY_BUILDERS = resolveProxyBuilders();
@@ -518,7 +512,7 @@ async function handleFetch() {
     const message = error?.message || "Unexpected error";
     if (!PROXY_BUILDERS.length && error?.name === "TypeError") {
       setStatus(
-        "Blocked by CORS in the browser. Add a proxy with ?proxy=YOUR_PROXY_URL or run locally.",
+        "Blocked by CORS in the browser. Configure the production proxy.",
         true,
       );
       return;
